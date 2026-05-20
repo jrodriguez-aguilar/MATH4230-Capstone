@@ -1,0 +1,945 @@
+\documentclass[12pt]{report}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\doublespacing
+
+\title{
+\vspace{-2cm}
+Predicting California Housing Values Using \\
+Applied Statistical and Machine Learning Methods
+}
+
+\author{
+Juan Rodriguez \\
+MATH 4230 --- Applied Statistical Methods for Data Science
+}
+
+\date{Spring 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\chapter*{ Summary}
+
+This project applies many different statistical and machine learning methods to the California Housing dataset in order to study what factors are connected to housing prices and how well different models predict these prices. The dataset contains 20,640 observations from a California census block groups and includes factors such as income, location, housing age, room counts, population, households, and ocean proximity.
+
+The main goal of the project is to predict median housing value and then classify areas as high-value or low-value. Regression models were used for predicting actual housing value, while classification models were used for predicting whether an area was above or below the median housing value.
+
+After considering multiple analytical perspectives, the results showed that models who were more flexible usually performed better than those who were rather simpler. Random forest was my strongest regression model, with an RMSE of 48352.46 and an $R^2$ of 0.8314. On the other hand for classification, the neural network had the best accuracy at 0.8735.
+
+One of the main finding were to use random forest when the goal is predicting actual housing values. While if the goal is classifying high-value areas, the neural network gives the best accuracy, but logistic regression is easier to explain. Overall, income and location were the strongest signals throughout the project.
+
+\newpage
+
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+\chapter{Introduction and Statistical Thinking}
+
+\section{Project Motivation}
+
+Housing prices matter because they affect families, cities, lenders, investors, and public policy. In California, housing value is especially important because prices vary widely across regions through out the state. Some areas are heavily shaped by income and coastal access, while others are more heavily affected  by population density, housing supply, and local geography.
+
+The purpose of this project is to use one dataset and apply many of the statistical and machine learning methods covered in MATH 4230. Instead of only fitting one model, the goal of the project is to compare many different models to see which are best for prediction, which ones are easiest to explain, and which ones give the most useful real-world information.
+
+\section{Dataset Overview}
+
+The dataset used in this project is the California Housing dataset which I was able to retrieve from the platform Kaggle. It contains 20,640 observations and 10 original variables. The variables include longitude, latitude, housing median age, total rooms, total bedrooms, population, households, median income, median house value, and ocean proximity.
+
+The main regression response variable is \texttt{median\_house\_value}. For classification models, I created a new variable called \texttt{high\_value}. This variable equals 1 if the housing value is above the dataset median and 0 otherwise.
+
+\section{Research Questions}
+
+\begin{enumerate}
+    \item Does median household income significantly predict housing value?
+    \item Which demographic and housing variables best explain variation in housing prices?
+    \item Can high-value housing markets be accurately classified?
+    \item Does cross-validation support the same conclusions as the test-set results?
+    \item How stable is the median income coefficient under bootstrap resampling?
+    \item Does ridge regression improve prediction compared with ordinary least squares?
+    \item Which variables remain important after lasso regularization?
+    \item Do decision trees capture useful nonlinear housing patterns?
+    \item Do ensemble tree methods improve prediction?
+    \item Which variables are most important in random forest and boosting?
+    \item Does an RBF SVM outperform a linear SVM?
+    \item How does the choice of \(K\) affect K-nearest neighbors?
+    \item Can PCA summarize the numeric predictors into fewer dimensions?
+    \item Does a neural network improve classification accuracy?
+    \item Which method gives the best balance between accuracy and interpretability?
+\end{enumerate}
+
+\section{Statistical Thinking and Uncertainty}
+
+Housing prices are not controlled by one factor. Income, location, housing structure, density, and ocean proximity all contribute to the final value. Because of that, there is natural variability in the data. A single number cannot fully describe the housing market.
+
+There is also uncertainty because the dataset is observational. The models can identify patterns and associations, but they do not prove causation. For example, median income is strongly associated with housing value, but this does not prove that income alone causes housing prices to rise.
+
+\newpage
+
+\chapter{Dataset Profile and Exploratory Data Analysis}
+
+\section{Dataset Source and Description}
+
+The California Housing dataset contains demographic, geographic, and housing-related information for California census block groups. The dataset includes 20,640 observations. It was selected because it is large enough for machine learning methods, contains both numeric and categorical variables, and supports both regression and classification.
+
+\section{Data Cleaning and Preprocessing}
+
+The original dataset contained 207 missing values in \texttt{total\_bedrooms}. These missing values were replaced using the median of the observed \texttt{total\_bedrooms} values. Median imputation was used because it is simple and less sensitive to extreme values than the mean.
+
+A binary response variable called \texttt{high\_value} was created. Observations above the median housing value were coded as 1, and observations below the median were coded as 0.
+
+Three engineered variables were created: \texttt{rooms\_per\_household}, \texttt{bedrooms\_per\_room}, and \texttt{population\_per\_household}. These variables were added because raw counts alone do not always describe density or crowding well.
+
+The dataset was split into 80\% training data and 20\% testing data. The same split was used throughout the project.
+
+\section{Data Dictionary}
+
+\begin{table}[H]
+\centering
+\caption{Primary Variables Included in the California Housing Dataset}
+\begin{tabular}{lll}
+\toprule
+Variable Name & Type & Description \\
+\midrule
+longitude & Numeric & Geographic longitude coordinate \\
+latitude & Numeric & Geographic latitude coordinate \\
+housing\_median\_age & Numeric & Median housing age \\
+total\_rooms & Numeric & Total number of rooms \\
+total\_bedrooms & Numeric & Total number of bedrooms \\
+population & Numeric & Population count \\
+households & Numeric & Number of households \\
+median\_income & Numeric & Median household income \\
+median\_house\_value & Numeric & Median housing value \\
+ocean\_proximity & Categorical & Proximity to ocean classification \\
+high\_value & Binary & Above-median housing value indicator \\
+rooms\_per\_household & Numeric & Rooms divided by households \\
+bedrooms\_per\_room & Numeric & Bedrooms divided by total rooms \\
+population\_per\_household & Numeric & Population divided by households \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Summary Statistics}
+
+The dataset had a mean median house value of 206856 and a median value of 179700. Median income had a mean of about 4 and a median of 3.5348. The interquartile range of the residual velocity metric confirms the seasonal stratification pattern.
+
+\begin{table}[H]
+\centering
+\caption{Selected Summary Statistics}
+\begin{tabular}{lrrrrr}
+\toprule
+Variable & Mean & SD & Median & Min & Max \\
+\midrule
+longitude & -120 & 2.00 & -118.49 & -124.35 & -114.31 \\
+latitude & 36 & 2.14 & 34.26 & 32.54 & 41.95 \\
+housing\_median\_age & 29 & 12.59 & 29 & 1 & 52 \\
+total\_rooms & 2636 & 2181.62 & 2127 & 2 & 39320 \\
+total\_bedrooms & 537 & 419.39 & 435 & 1 & 6445 \\
+population & 1425 & 1132.46 & 1166 & 3 & 35682 \\
+households & 500 & 382.33 & 409 & 1 & 6082 \\
+median\_income & 4 & 1.90 & 3.53 & 0.50 & 15.00 \\
+median\_house\_value & 206856 & 115395.62 & 179700 & 14999 & 500001 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Exploratory Data Analysis}
+
+The distribution of median house value was right-skewed, with many observations clustered below the highest values and a visible cap near 500001.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/Histogram.pdf}
+\caption{Distribution of median house values.}
+\label{fig:house_value_histogram}
+\end{figure}
+
+Housing values also differed by ocean proximity. Areas closer to the ocean generally had higher housing values than inland areas.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/Boxplot.pdf}
+\caption{Median house value by ocean proximity.}
+\label{fig:ocean_boxplot}
+\end{figure}
+
+Median income showed a strong positive relationship with median house value.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/income_scatterplot.png}
+\caption{Median income compared with median house value.}
+\label{fig:income_scatterplot}
+\end{figure}
+
+The correlation matrix showed strong relationships among housing size variables such as total rooms, total bedrooms, households, and population.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/Corelationmatrix.pdf}
+\caption{Correlation heatmap for numeric variables.}
+\label{fig:correlation_heatmap}
+\end{figure}
+
+\newpage
+
+\chapter{Simple Linear Regression}
+
+\begin{center}
+\textit{Median income alone explains a meaningful share of housing value, but it leaves too much of the market story unfinished.}
+\end{center}
+
+\section*{\S1. The Question}
+Does median income predict median house value?
+
+\section*{\S2. Method in Brief}
+Simple linear regression uses one predictor to explain one continuous response. Here, median income is used to predict median house value.
+
+\section*{\S3. Why This Method?}
+This model gives a simple baseline. Since income is one of the most obvious economic factors connected to housing prices, it makes sense to start here before using more complicated models.
+
+\section*{\S4. Data Setup}
+The response variable was \texttt{median\_house\_value}. The predictor was \texttt{median\_income}. The same 80/20 training and testing split was used.
+
+\section*{\S5. Analysis}
+The estimated coefficient for median income was 41570.91. This means that a one-unit increase in median income was associated with an estimated increase of about \$41,571 in median house value.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/SLR.pdf}
+\caption{Simple linear regression of median income predicting house value.}
+\label{fig:slr_income}
+\end{figure}
+
+\section*{\S6. Diagnostics \& Tuning}
+Diagnostic plots were used to check residual behavior. The model was useful, but the residual pattern showed that income alone cannot capture every important housing-market pattern.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/Residuals.pdf}
+\caption{Diagnostic plots for the simple linear regression model.}
+\label{fig:slr_diagnostics}
+\end{figure}
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Simple Linear Regression Test Performance}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & MAE & $R^2$ \\
+\midrule
+Simple Linear Regression & 83726.68 & 62572.08 & 0.4869 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Median income alone explained about 49\% of the test-set variation in median house value.
+
+\section*{\S8. Real-World Decision}
+Median income is a strong first signal for housing value, but I would not use this model alone for a real housing valuation decision.
+
+\section*{\S9. Caveats \& Limitations}
+The model ignores location, ocean proximity, and housing density. It is useful as a baseline, not as a final model.
+
+\newpage
+
+\chapter{Multiple Linear Regression}
+
+\begin{center}
+\textit{Adding geography, housing structure, and ocean proximity made the linear model much stronger than income alone.}
+\end{center}
+
+\section*{\S1. The Question}
+Which combination of demographic, geographic, and housing variables best predicts median house value?
+
+\section*{\S2. Method in Brief}
+Multiple linear regression uses several predictors at the same time. This allows the model to estimate the relationship between each predictor and housing value while accounting for the others.
+
+\section*{\S3. Why This Method?}
+Housing value is not based on one factor. Multiple regression is a good next step because it keeps the model understandable while adding location, density, and housing structure.
+
+\section*{\S4. Data Setup}
+The response was \texttt{median\_house\_value}. Predictors included longitude, latitude, housing age, total rooms, bedrooms, population, households, median income, ocean proximity, and the engineered variables.
+
+\section*{\S5. Analysis}
+The multiple regression model improved strongly over simple regression. Dummy variables were automatically created for \texttt{ocean\_proximity}.
+
+\section*{\S6. Diagnostics \& Tuning}
+VIF values were checked for multicollinearity. The highest values were for \texttt{total\_bedrooms} and \texttt{households}, which makes sense because those variables are closely related. Stepwise AIC removed \texttt{total\_rooms} and slightly improved RMSE.
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Regression Model Comparison Through Chapter 4}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & MAE & $R^2$ \\
+\midrule
+Simple Linear Regression & 83726.680 & 62572.080 & 0.487 \\
+Multiple Linear Regression & 68545.230 & 49437.770 & 0.656 \\
+Stepwise Multiple Regression & 68537.870 & 49433.210 & 0.656 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Multiple regression reduced RMSE by more than \$15,000 compared with simple regression.
+
+\section*{\S8. Real-World Decision}
+If interpretability matters, the stepwise multiple regression model is a reasonable choice because it performs well and is still explainable.
+
+\section*{\S9. Caveats \& Limitations}
+The model still assumes mostly linear relationships. It also has some multicollinearity among housing-size variables.
+
+\newpage
+
+\chapter{Logistic Regression}
+
+\begin{center}
+\textit{Logistic regression classified high-value housing regions with strong accuracy while staying easy to explain.}
+\end{center}
+
+\section*{\S1. The Question}
+Can the dataset classify census block groups as high-value or low-value housing areas?
+
+\section*{\S2. Method in Brief}
+Logistic regression predicts the probability of a binary outcome. Here, the outcome is whether an area is above the median house value.
+
+\section*{\S3. Why This Method?}
+The response variable has two categories, so logistic regression is a natural first classification model.
+
+\section*{\S4. Data Setup}
+The response was \texttt{high\_value}. The predictors were the same main variables used in the multiple regression model.
+
+\section*{\S5. Analysis}
+The model classified 1718 low-value observations and 1747 high-value observations correctly.
+
+\section*{\S6. Diagnostics \& Tuning}
+The model produced a warning that some probabilities were very close to 0 or 1. This means some observations were very easy to classify.
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Logistic Regression Classification Results}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Accuracy & 0.8396 \\
+Sensitivity & 0.8468 \\
+Specificity & 0.8324 \\
+Balanced Accuracy & 0.8396 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Logistic regression performed well and was balanced between detecting high-value and low-value areas.
+
+\section*{\S8. Real-World Decision}
+Logistic regression is a good choice when the model needs to be explained clearly. It is not the most accurate model, but it is easy to communicate.
+
+\section*{\S9. Caveats \& Limitations}
+The model assumes a linear boundary on the log-odds scale, so it may miss more complicated patterns.
+
+\newpage
+
+\chapter{Resampling Methods}
+
+\begin{center}
+\textit{Cross-validation and bootstrap results showed that the main findings were not just one lucky train-test split.}
+\end{center}
+
+\section*{\S1. The Question}
+How stable are the regression findings when the data are repeatedly resampled?
+
+\section*{\S2. Method in Brief}
+Cross-validation checks model performance across multiple folds of the data. Bootstrap resampling estimates uncertainty by repeatedly sampling with replacement.
+
+\section*{\S3. Why This Method?}
+One train-test split can be misleading. Resampling gives a better sense of whether the findings are stable.
+
+\section*{\S4. Data Setup}
+Ten-fold cross-validation was used for simple and multiple regression. Bootstrap resampling with 1000 samples was used for the median income coefficient.
+
+\section*{\S5. Analysis}
+
+\begin{table}[H]
+\centering
+\caption{Cross-Validation Results}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & $R^2$ & MAE \\
+\midrule
+Simple Linear Regression & 83728.49 & 0.4707 & 62696.45 \\
+Multiple Linear Regression & 68671.62 & 0.6440 & 49458.75 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{\S6. Diagnostics \& Tuning}
+The bootstrap estimate for the median-income coefficient was 41570.91, with a standard error of 402.30. The 95\% percentile interval was approximately 40794 to 42337.
+
+\section*{\S7. Findings}
+The bootstrap interval stayed far above zero, so the income effect was stable.
+
+\section*{\S8. Real-World Decision}
+Income can be treated as a dependable predictor, but not as the only predictor.
+
+\section*{\S9. Caveats \& Limitations}
+Resampling checks stability, but it does not prove causation or fix missing variables.
+
+\newpage
+
+\chapter{Regularization: Ridge and Lasso}
+
+\begin{center}
+\textit{Lasso kept most of the useful predictors and performed almost as well as the best linear regression model.}
+\end{center}
+
+\section*{\S1. The Question}
+Does regularization improve regression performance and identify a cleaner set of predictors?
+
+\section*{\S2. Method in Brief}
+Ridge shrinks coefficients toward zero. Lasso also shrinks coefficients, but it can set some coefficients exactly to zero.
+
+\section*{\S3. Why This Method?}
+Several predictors are correlated. Regularization helps control unstable coefficients and reduce overfitting.
+
+\section*{\S4. Data Setup}
+The response was \texttt{median\_house\_value}. Predictors were converted to a model matrix so categorical variables could be included.
+
+\section*{\S5. Analysis}
+The selected ridge penalty was $\lambda = 7886.202$. The selected lasso penalty was $\lambda = 154.809$.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/ridge_cv_curve.pdf}
+\caption{Cross-validation curve for ridge regression.}
+\label{fig:ridge_cv}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/lasso_cv_curve.pdf}
+\caption{Cross-validation curve for lasso regression.}
+\label{fig:lasso_cv}
+\end{figure}
+
+\section*{\S6. Diagnostics \& Tuning}
+Ten-fold cross-validation selected the penalty values. This made the ridge and lasso choices data-driven instead of arbitrary.
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Regularized Regression Results}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & MAE & $R^2$ \\
+\midrule
+Ridge Regression & 69987.44 & 50570.98 & 0.6450 \\
+Lasso Regression & 68581.06 & 49427.37 & 0.6557 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Lasso regression outperformed ridge regression by 2.009\% in RMSE. Lasso removed \texttt{total\_rooms}, suggesting it did not add much after accounting for the related predictors.
+
+\section*{\S8. Real-World Decision}
+Lasso would be preferred over ridge for this dataset because it gave better accuracy and slightly simplified the model.
+
+\section*{\S9. Caveats \& Limitations}
+Regularization improved stability, but it did not beat the tree ensemble models.
+
+\newpage
+
+\chapter{Decision Trees}
+
+\begin{center}
+\textit{Decision trees gave simple and readable rules, but one tree was not enough to beat the stronger models.}
+\end{center}
+
+\section*{\S1. The Question}
+Can decision trees capture nonlinear housing patterns and classify high-value areas?
+
+\section*{\S2. Method in Brief}
+Decision trees split the data into smaller groups based on predictor values.
+
+\section*{\S3. Why This Method?}
+Trees are useful because they can capture nonlinear patterns and are easy to explain visually.
+
+\section*{\S4. Data Setup}
+A regression tree predicted \texttt{median\_house\_value}. A classification tree predicted \texttt{high\_value}.
+
+\section*{\S5. Analysis}
+The regression tree mainly used median income, ocean proximity, and population per household. The classification tree used latitude, longitude, median income, ocean proximity, and population per household.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/regression_tree.pdf}
+\caption{Regression tree for predicting median house value.}
+\label{fig:regression_tree}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/classification_tree.pdf}
+\caption{Classification tree for predicting high-value housing areas.}
+\label{fig:classification_tree}
+\end{figure}
+
+\section*{\S6. Diagnostics \& Tuning}
+Complexity parameter plots were used to inspect tree size and error.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/regression_tree_cp.pdf}
+\caption{Complexity parameter plot for the regression tree.}
+\label{fig:reg_tree_cp}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/classification_tree_cp.pdf}
+\caption{Complexity parameter plot for the classification tree.}
+\label{fig:class_tree_cp}
+\end{figure}
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Decision Tree Results}
+\begin{tabular}{lrr}
+\toprule
+Model & Main Metric & Value \\
+\midrule
+Regression Tree & RMSE & 73340.90 \\
+Regression Tree & $R^2$ & 0.6060 \\
+Classification Tree & Accuracy & 0.8396 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{\S8. Real-World Decision}
+A decision tree is useful for explaining broad rules, but it should not be the final prediction model.
+
+\section*{\S9. Caveats \& Limitations}
+Single trees can change a lot if the data changes slightly.
+
+\newpage
+
+\chapter{Tree Ensembles}
+
+\begin{center}
+\textit{Random forest was the strongest regression model because it captured housing patterns that linear models missed.}
+\end{center}
+
+\section*{\S1. The Question}
+Do ensemble tree methods improve housing-value prediction?
+
+\section*{\S2. Method in Brief}
+Bagging averages many trees. Random forest averages many trees while randomly selecting predictors at each split. Boosting builds trees in sequence, with each tree trying to improve on earlier errors.
+
+\section*{\S3. Why This Method?}
+Housing prices are nonlinear and depend on interactions between variables. Ensemble methods are better suited for this than a single tree.
+
+\section*{\S4. Data Setup}
+The response was \texttt{median\_house\_value}. Bagging and random forest used 300 trees.
+
+\section*{\S5. Analysis}
+Bagging explained 81.61\% of variance. Random forest explained 82.13\%. Boosting used 3000 trees.
+
+\section*{\S6. Diagnostics \& Tuning}
+Out-of-bag error was inspected for bagging and random forest.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/bagging_oob.pdf}
+\caption{Out-of-bag error plot for the bagging model.}
+\label{fig:bagging_oob}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/bagging_importance.pdf}
+\caption{Variable importance plot for the bagging model.}
+\label{fig:bagging_importance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/random_forest_oob.pdf}
+\caption{Out-of-bag error plot for the random forest model.}
+\label{fig:rf_oob}
+\end{figure}
+
+Variable importance showed that median income, ocean proximity, population per household, longitude, and latitude were important predictors.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/random_forest_importance.pdf}
+\caption{Variable importance plot for the random forest model.}
+\label{fig:rf_importance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/boosting_error_curve.pdf}
+\caption{Cross-validation error across boosting iterations.}
+\label{fig:boosting_error}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/boosting_importance.pdf}
+\caption{Relative influence plot for the boosting model.}
+\label{fig:boosting_importance}
+\end{figure}
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Tree Ensemble Regression Results}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & MAE & $R^2$ \\
+\midrule
+Bagging & 49550.86 & 32088.44 & 0.8207 \\
+Random Forest & 48352.46 & 31908.85 & 0.8314 \\
+Boosting & 52173.82 & 36040.33 & 0.8009 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Random forest was the best regression model overall.
+
+\section*{\S8. Real-World Decision}
+For predicting actual house values, I would recommend random forest.
+
+\section*{\S9. Caveats \& Limitations}
+Random forest is less transparent than regression. It can show variable importance, but it does not give simple coefficients.
+
+\newpage
+
+\chapter{Support Vector Machines}
+
+\begin{center}
+\textit{The RBF support vector machine improved classification by allowing a more flexible boundary between high- and low-value housing areas.}
+\end{center}
+
+\section*{\S1. The Question}
+Can support vector machines classify high-value housing areas more accurately than simpler classification models?
+
+\section*{\S2. Method in Brief}
+A support vector machine separates classes using a decision boundary. A linear SVM uses a straight boundary, while an RBF SVM allows a curved boundary.
+
+\section*{\S3. Why This Method?}
+The boundary between high- and low-value housing areas is probably not perfectly straight. The RBF kernel gives the model more flexibility.
+
+\section*{\S4. Data Setup}
+The response was \texttt{high\_value}. Predictors were scaled before fitting the SVM models.
+
+\section*{\S5. Analysis}
+Both linear and RBF SVM models were fit.
+
+\section*{\S6. Diagnostics \& Tuning}
+The two kernels were compared using accuracy, sensitivity, and specificity.
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Support Vector Machine Results}
+\begin{tabular}{lrrr}
+\toprule
+Model & Accuracy & Sensitivity & Specificity \\
+\midrule
+Linear SVM & 0.8401 & 0.8459 & 0.8343 \\
+RBF SVM & 0.8638 & 0.8725 & 0.8551 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The RBF SVM clearly outperformed the linear SVM.
+
+\section*{\S8. Real-World Decision}
+If classification accuracy matters more than interpretation, the RBF SVM is a strong choice.
+
+\section*{\S9. Caveats \& Limitations}
+SVMs are harder to explain than logistic regression.
+
+\newpage
+
+\chapter{K-Nearest Neighbors}
+
+\begin{center}
+\textit{K-nearest neighbors worked best at \(K=7\), showing that local similarity can classify housing regions fairly well.}
+\end{center}
+
+\section*{\S1. The Question}
+How well can high-value housing regions be classified using nearby observations?
+
+\section*{\S2. Method in Brief}
+KNN classifies an observation based on the most common class among its \(K\) nearest neighbors.
+
+\section*{\S3. Why This Method?}
+Housing areas with similar predictor values may have similar housing values, making KNN a reasonable comparison model.
+
+\section*{\S4. Data Setup}
+Predictors were dummy-coded and standardized before running KNN.
+
+\section*{\S5. Analysis}
+Values of \(K = 3, 5, 7, 9, 11, 15,\) and \(21\) were tested.
+
+\section*{\S6. Diagnostics \& Tuning}
+
+\begin{table}[H]
+\centering
+\caption{KNN Accuracy by Choice of \(K\)}
+\begin{tabular}{rr}
+\toprule
+$K$ & Accuracy \\
+\midrule
+3 & 0.8452 \\
+5 & 0.8515 \\
+7 & 0.8532 \\
+9 & 0.8481 \\
+11 & 0.8493 \\
+15 & 0.8481 \\
+21 & 0.8471 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/knn_accuracy_plot.pdf}
+\caption{KNN accuracy across different values of \(K\).}
+\label{fig:knn_accuracy}
+\end{figure}
+
+\section*{\S7. Findings}
+The best value was \(K=7\), with an accuracy of about 0.8532.
+
+\section*{\S8. Real-World Decision}
+KNN is useful as a comparison model, but I would not choose it as the final model.
+
+\section*{\S9. Caveats \& Limitations}
+KNN depends heavily on scaling and can become slow for large datasets.
+
+\newpage
+
+\chapter{Principal Component Analysis}
+
+\begin{center}
+\textit{PCA showed that much of the numeric housing information can be compressed into a smaller number of components.}
+\end{center}
+
+\section*{\S1. The Question}
+Can the numeric predictors be summarized using fewer dimensions?
+
+\section*{\S2. Method in Brief}
+PCA creates new variables called principal components. These components are combinations of the original variables.
+
+\section*{\S3. Why This Method?}
+Several variables describe similar things, such as total rooms, bedrooms, population, and households. PCA checks whether these variables can be compressed.
+
+\section*{\S4. Data Setup}
+Only numeric predictors were used. \texttt{median\_house\_value} was removed before PCA, and variables were standardized.
+
+\section*{\S5. Analysis}
+The first component explained 35.48\% of the variance. The first three components explained 70.42\%, and the first six explained 93.61\%.
+
+\section*{\S6. Diagnostics \& Tuning}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/PCAscreeplot.pdf}
+\caption{Scree plot for principal component analysis.}
+\label{fig:pca_scree}
+\end{figure}
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{PCA Variance Explained}
+\begin{tabular}{lrr}
+\toprule
+Component & Variance Explained & Cumulative Variance \\
+\midrule
+PC1 & 0.3548 & 0.3548 \\
+PC2 & 0.1846 & 0.5394 \\
+PC3 & 0.1648 & 0.7042 \\
+PC4 & 0.0919 & 0.7961 \\
+PC5 & 0.0770 & 0.8731 \\
+PC6 & 0.0630 & 0.9361 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/PCAplot.pdf}
+\caption{First two principal components colored by high-value classification.}
+\label{fig:pca_pc1_pc2}
+\end{figure}
+
+\section*{\S8. Real-World Decision}
+PCA is useful for reducing dimensions, but the original variables are easier to explain.
+
+\section*{\S9. Caveats \& Limitations}
+Principal components are harder to interpret than original variables.
+
+\newpage
+
+\chapter{Neural Networks}
+
+\begin{center}
+\textit{The neural network produced the best classification accuracy, but it was also one of the hardest models to explain.}
+\end{center}
+
+\section*{\S1. The Question}
+Can a neural network improve classification of high-value housing areas?
+
+\section*{\S2. Method in Brief}
+A neural network uses hidden nodes to learn nonlinear relationships between predictors and the response.
+
+\section*{\S3. Why This Method?}
+Housing values are affected by complicated relationships, so a flexible model may capture patterns that simpler models miss.
+
+\section*{\S4. Data Setup}
+Predictors were dummy-coded and standardized. The neural network used one hidden layer with 5 nodes and decay of 0.01.
+
+\section*{\S5. Analysis}
+The fitted model had 15 inputs, 5 hidden nodes, 1 output, and 86 weights.
+
+\section*{\S6. Diagnostics \& Tuning}
+The model was evaluated using a confusion matrix.
+
+\section*{\S7. Findings}
+
+\begin{table}[H]
+\centering
+\caption{Neural Network Classification Results}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Accuracy & 0.8735 \\
+Sensitivity & 0.8793 \\
+Specificity & 0.8677 \\
+Balanced Accuracy & 0.8735 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The neural network was the strongest classification model.
+
+\section*{\S8. Real-World Decision}
+If classification accuracy is the main goal, the neural network is the best choice.
+
+\section*{\S9. Caveats \& Limitations}
+The neural network is hard to explain and would need more tuning before real-world use.
+
+\newpage
+
+\chapter{Method Comparison and Final Recommendations}
+
+\section{Regression Model Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Final Regression Model Comparison}
+\begin{tabular}{lrrr}
+\toprule
+Model & RMSE & MAE & $R^2$ \\
+\midrule
+Random Forest & 48352.46 & 31908.85 & 0.8314 \\
+Bagging & 49550.86 & 32088.44 & 0.8207 \\
+Boosting & 52173.82 & 36040.33 & 0.8009 \\
+Stepwise MLR & 68537.87 & 49433.21 & 0.6561 \\
+MLR & 68545.23 & 49437.77 & 0.6560 \\
+Lasso & 68581.06 & 49427.37 & 0.6557 \\
+Ridge & 69987.44 & 50570.98 & 0.6450 \\
+Regression Tree & 73340.90 & 54001.99 & 0.6060 \\
+SLR & 83726.68 & 62572.08 & 0.4869 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Random forest was the best regression model. It had the lowest RMSE and the highest $R^2$.
+
+\section{Classification Model Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Final Classification Model Comparison}
+\begin{tabular}{lrrr}
+\toprule
+Model & Accuracy & Sensitivity & Specificity \\
+\midrule
+Neural Network & 0.8735 & 0.8793 & 0.8677 \\
+RBF SVM & 0.8638 & 0.8725 & 0.8551 \\
+KNN & 0.8534 & 0.8483 & 0.8585 \\
+Linear SVM & 0.8401 & 0.8459 & 0.8343 \\
+Logistic Regression & 0.8396 & 0.8468 & 0.8324 \\
+Classification Tree & 0.8396 & 0.8114 & 0.8677 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The neural network was the best classification model, followed by the RBF SVM.
+
+\section{Final Recommendation}
+
+For predicting actual housing values, I would recommend random forest. It performed best on the regression task and still gave useful variable importance information.
+
+For classifying areas as high-value or low-value, I would recommend the neural network if accuracy is the top priority. If the model needs to be explained clearly, I would recommend logistic regression instead.
+
+\newpage
+
+\chapter{Reflection and Limitations}
+
+\section{What Was Learned About the Data}
+
+The data showed that housing value is strongly connected to income and location. Median income was important in nearly every model, but location and ocean proximity also mattered a lot.
+
+\section{What Was Learned About the Methods}
+
+Simple models were easier to explain, but they were not always the most accurate. Random forest was the best regression model, while the neural network was the best classification model.
+
+\section{Limitations}
+
+The data are observational, so the models show association, not causation. The dataset also does not include some important housing factors such as school quality, crime, interest rates, zoning, or local job markets.
+
+\section{Future Work}
+
+With more time, I would add outside data and tune the machine learning models more carefully. I would also study coastal and inland areas separately because those markets may behave differently.
+
+
+
+\end{document}
